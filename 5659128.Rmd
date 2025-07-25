@@ -1,0 +1,342 @@
+---
+title: "Mid Term Assignment - Business Statistics"
+author: "Bilal Ahmad Khan - 5659128"
+date: "2024-10-21"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Section 1
+Loading the libraries relevant for the tasks that need to be performed.
+```{r}
+
+#Loading in the required libraries
+
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+```
+
+
+Loading the dataset and naming it 'foot_traffic_data'.
+```{r}
+
+#Loading in the dataset 'York_Footfall_data' as 'foot_traffic_data'
+
+foot_traffic_data <- read.csv('York_Footfall_data.csv')
+```
+
+
+Using the 'str' and 'summary' functions to check data structure and basic summary statistics for each column in the dataset.
+```{r}
+
+#Checking data structure for each column
+
+str(foot_traffic_data)
+summary(foot_traffic_data)
+```
+
+Can observe that there are two locations, ‘Parliament Street at M&S’ and ‘Parliament Street’; standardizing these values to show only ‘Parliament Street’.
+```{r}
+
+#Standardising 'LocationName' values
+
+foot_traffic_data <- foot_traffic_data %>%
+  mutate(LocationName = ifelse(LocationName == "Parliament Street at M&S", 
+                               "Parliament Street", 
+                               LocationName))
+```
+
+Removing all rows with missing values.
+```{r}
+
+#Removing rows with missing values
+
+foot_traffic_data <- na.omit(foot_traffic_data)
+
+```
+
+Checking the data for any duplicate rows.
+```{r}
+
+#Checking the data for duplicate rows
+
+duplicates <- foot_traffic_data[duplicated(foot_traffic_data), ]
+duplicates
+```
+
+Generating boxplots to visually identify outliers and assess data variability, starting with a boxplot of 'TotalCount' by 'LocationName'.
+```{r}
+
+#Plotting Boxplot for 'TotalCount' by 'LocationName'
+
+ggplot(foot_traffic_data, aes(x = LocationName, y = TotalCount, fill = LocationName)) +
+  geom_boxplot(outlier.size = 1) +
+  theme_minimal() +
+  labs(title = "Boxplot of TotalCount by LocationName") +
+  theme(axis.text.x = element_text(angle = 20))
+
+```
+
+
+Creating a boxplot of 'TotalCount' by 'Weekday'.
+```{r}
+
+#Plotting Boxplot for 'TotalCount' by 'Weekday'
+
+ggplot(foot_traffic_data, aes(x = WeekDay, y = TotalCount, fill = WeekDay)) +
+  geom_boxplot(outlier.size = 1) +
+  labs(title = "Total Count by Weekday", x = "Weekday", y = "Total Count") +
+  scale_x_discrete(limits = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 20))
+
+```
+
+
+Creating a summary table categorized by location.
+```{r}
+
+#Group by location and calculate summary statistics
+
+summary_table <- foot_traffic_data %>%
+  group_by(LocationName) %>%
+  summarise(
+    First_Measurement_Date = min(Date, na.rm = TRUE),
+    Last_Measurement_Date = max(Date, na.rm = TRUE),
+    Mean_Daily_Footfall = mean(TotalCount, na.rm = TRUE),
+    SD_Daily_Footfall = sd(TotalCount, na.rm = TRUE),
+    Highest_Daily_Footfall = max(TotalCount, na.rm = TRUE),
+    Lowest_Daily_Footfall = min(TotalCount, na.rm = TRUE)
+  )
+```
+
+
+Displaying the summary table to review its contents.
+```{r}
+
+#View the summary table
+
+print(summary_table, width = Inf)
+```
+
+
+Creating a filtered dataset for data from the year 2019.
+```{r}
+
+#Filter data for the year 2019
+
+foot_traffic_data$Date <- as.Date(foot_traffic_data$Date, format = "%Y-%m-%d")
+foot_traffic_data_2019 <- foot_traffic_data %>%
+  filter(format(Date, "%Y") == "2019")
+```
+
+
+Plotting a histogram to view the location-wise footfall distribution for 2019.
+```{r}
+
+#Plotting histogram of location-wise footfall distribution in the year 2019
+
+ggplot(foot_traffic_data_2019, aes(x = TotalCount)) +
+  geom_histogram(binwidth =1000, fill = "skyblue", color = "black", alpha = 0.7) +
+  facet_wrap(~ LocationName, ncol= 2) +
+  labs(title = "Distribution of Daily Footfall in 2019 by Location",
+       x = "Daily Footfall",
+       y = "Count") +
+  theme_minimal()
+```
+
+Generating a density plot to provide a clearer comparison of footfall distribution across locations.
+```{r}
+
+#Plotting density plot of location-wise footfall distribution in the year 2019
+
+ggplot(foot_traffic_data_2019, aes(x = TotalCount, fill = LocationName)) +
+  geom_density(alpha = 0.7) + 
+  theme_minimal() +
+  labs(title = "Density Plot of Footfall Across All Days by Location",
+       x = "Total Count",
+       y = "Density")
+
+```
+
+Conducting a t-test to compare the 2019 footfall between Coney Street and Stonegate.
+```{r}
+
+# Creating data subsets for Coney Street and Stonegate in 2019
+
+c_street_2019 <- subset(foot_traffic_data_2019, LocationName == "Coney Street")$TotalCount
+stonegate_2019 <- subset(foot_traffic_data_2019, LocationName == "Stonegate")$TotalCount
+```
+
+```{r}
+
+# Performing a T-Test on the two subsets
+
+t_test_result_1 <- t.test(c_street_2019, stonegate_2019, var.equal = FALSE)
+
+t_test_result_1
+```
+
+
+Performing an additional t-test on the same locations but limited to weekend days (i.e., Saturdays and Sundays).
+```{r}
+
+# Creating data subsets for Coney Street and Stonegate in 2019 on weekend days (Saturday/Sunday)
+
+c_street_weekend <- subset(foot_traffic_data_2019, LocationName == "Coney Street" & WeekDay %in% c("Saturday", "Sunday"))$TotalCount
+
+stonegate_weekend <- subset(foot_traffic_data_2019, LocationName == "Stonegate" & WeekDay %in% c("Saturday", "Sunday"))$TotalCount
+```
+
+```{r}
+# Performing a T-Test on the two subsets
+
+t_test_result_weekend <- t.test(c_street_weekend, stonegate_weekend, 
+                         var.equal = FALSE)
+t_test_result_weekend
+```
+
+
+# Section 2
+
+## Report - Analysis of York Footfall Data for Ideal Stall Location
+
+## Executive Summary
+
+This report analyzes foot traffic from key locations in York to determine the ideal placement for a promotional stall. We compared Coney Street and Stonegate based on daily and weekend footfall counts for 2019. The results show that Coney Street consistently attracts higher foot traffic throughout the week. However, weekend foot traffic is similar at both locations. Based on these insights, we recommend Coney Street for maximum visibility across the week, with either location offering comparable exposure on weekends.
+
+## Data Quality and Integrity Checks
+
+Before any analysis was performed, the data was checked for quality and integrity.
+
+The data contained a location called 'Parliament Street at M&S' and another location called 'Parliament Street'. Thus, the two values were standardised to show only 'Parliament Street'. 
+
+The data also contained 10 missing values in the 'TotalCount' column and 100 missing values in the 'Recording_ID' column. Since the number of missing values was low and spread across the dataset, rows with missing values were removed from the dataset. The data was also checked for duplicate rows, of which none were found.
+
+Boxplots were also generated to visually identify outliers and assess the data's variablity, starting with a boxplot of 'TotalCount' by 'LocationName':
+
+```{r}
+
+#Plotting Boxplot for 'TotalCount' by 'LocationName'
+
+ggplot(foot_traffic_data, aes(x = LocationName, y = TotalCount, fill = LocationName)) +
+  geom_boxplot(outlier.size = 1) +
+  theme_minimal() +
+  labs(title = "Boxplot of TotalCount by LocationName") +
+  theme(axis.text.x = element_text(angle = 20))
+
+```
+
+The boxplot showed considerable variability in foot traffic across locations, with Coney Street and Stonegate displaying multiple outliers. This pattern suggests that certain days see notably high foot traffic counts, likely influenced by seasonal retail peaks or other events.
+
+The second boxplot aimed to visualise 'TotalCount' by 'Weekday':
+
+```{r}
+
+#Plotting Boxplot for 'TotalCount' by 'Weekday'
+
+ggplot(foot_traffic_data, aes(x = WeekDay, y = TotalCount, fill = WeekDay)) +
+  geom_boxplot(outlier.size = 1) +
+  labs(title = "Total Count by Weekday", x = "Weekday", y = "Total Count") +
+  scale_x_discrete(limits = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 20))
+
+```
+
+The boxplot shows pronounced outliers, particularly on weekends. This pattern aligns with the expected rise in foot traffic on Saturdays and Sundays, reinforcing that weekends generally see higher foot traffic counts than weekdays.
+
+To ensure accurate interpretation, it is recommended that these outliers be reviewed by the dataset's subject matter expert (SME) to confirm if they align with expected trends or if they could be attributed to potential data quality issues.
+
+## Analysis Methodology
+
+To compare the average footfall between Coney Street and Stonegate, the analysis first examined the distribution of foot traffic across all days and locations, filtered specifically for 2019 data. Then, two independent sample t-tests were conducted: one assessed daily foot traffic over the full week, while the other focused exclusively on weekends. These analyses aimed to identify which location had the highest average foot traffic count, influencing decisions for optimal stall placement.
+
+
+## Footfall Distribution by Location
+
+To understand the distribution of footfall across all days in the dataset, histograms were plotted for each location, using data filtered specifically for 2019. This provided a clear visual representation of how foot traffic counts varied at each site, as seen below:
+
+```{r}
+
+#Plotting histogram of location-wise footfall distribution in the year 2019
+
+ggplot(foot_traffic_data_2019, aes(x = TotalCount)) +
+  geom_histogram(binwidth =1000, fill = "skyblue", color = "black", alpha = 0.7) +
+  facet_wrap(~ LocationName, ncol= 2) +
+  labs(title = "Distribution of Daily Footfall in 2019 by Location",
+       x = "Daily Footfall",
+       y = "Count") +
+  theme_minimal()
+```
+
+To better see the comparison in distributions between the locations, a density plot was also generated:
+
+```{r}
+
+#Plotting density plot of location-wise footfall distribution in the year 2019
+
+ggplot(foot_traffic_data_2019, aes(x = TotalCount, fill = LocationName)) +
+  geom_density(alpha = 0.7) + 
+  theme_minimal() +
+  labs(title = "Density Plot of Footfall Across All Days by Location",
+       x = "Total Count",
+       y = "Density")
+
+```
+
+Both graphs reveal distinct foot traffic patterns for each location. Coney Street shows a higher concentration of high footfall counts as compared to other locations, confirming it as a consistently busy area across multiple days. Other locations display more varied distributions, which could be attributed to factors such as seasonal trends, advertising efforts, campaigns etc.
+
+## T-Test Results and Interpretation
+
+The first T-Test was performed to compare the 2019 footfall of Coney Street to Stonegate across all days, as seen below:
+
+```{r}
+
+# Performing a T-Test on the two subsets
+
+t_test_result_1 <- t.test(c_street_2019, stonegate_2019, var.equal = FALSE)
+
+t_test_result_1
+```
+
+The mean footfall for Coney Street was M = 20821.70, while for Stonegate it was M = 19228.02, which is statistically significant t(681.51) = 3.27, p= 0.001. This indicates that Coney Street experienced consistently higher foot traffic throughout the week as compared to Stonegate in the year 2019.
+
+The second T-Test was performed to compare the 2019 footfall of Coney Street to Stonegate across only weekend days (i.e. Saturdays & Sundays), as seen below:
+
+```{r}
+# Performing a T-Test on the two subsets
+
+t_test_result_weekend <- t.test(c_street_weekend, stonegate_weekend, 
+                         var.equal = FALSE)
+t_test_result_weekend
+```
+
+The test indicates that the average weekend footfall on Coney Street was slightly lower than on Stonegate; however the test is not statistically significant t(197.23) = −0.46, p= 0.6485. This suggests that weekend footfall levels are similar at both locations.
+
+## Conclusions and Recommendations
+
+Based on the results of the analysis, the recommendations are as follows:
+
+- If operating every day, Coney Street is recommended due to its consistently higher average foot traffic throughout the week, maximizing potential reach
+
+- If operating only on weekends, either Coney Street or Stonegate would be suitable, as weekend footfall levels are similar. The choice can then be guided by factors like competitive presence, logistical convenience etc.
+
+.
+.
+.
+.
+.
+.
+
+## Declaration of AI Use
+
+I hereby certify that the work I am submitting is entirely my own. Any external references and sources are explicitly acknowledged and clearly cited within the content. I am fully aware of the University of Warwick's policies on plagiarism and collusion.
+
+I confirm that no significant portion of this work has been previously submitted by me for other assessments in any accredited course of study. I understand that if any such submission has occurred, it may result in an appropriate reduction of the mark that I would otherwise have received.
+
+Artificial Intelligence tools were used during the preparation of this work. Specifically, ChatGPT was employed to suggest examples of functions and approaches to certain technical challenges. These suggestions were subsequently interpreted by me, adapted, and customized to fit the requirements of this specific data/report. The final code and content reflect my own understanding and modifications based on these prompts.
+
+
